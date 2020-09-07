@@ -18,7 +18,6 @@ class BULLCOWGAME_API UBullCowCartridge : public UCartridge
 
 	// Your declarations go below!
 	private:
-		TArray<FString> Isograms = {TEXT("helo"), TEXT("gaze"), TEXT("ansi")};
 		FString HiddenWord;
 		int32 Lives = 5;
 	

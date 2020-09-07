@@ -1,5 +1,11 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 #include "BullCowCartridge.h"
+#include "Isograms.h"
+
+struct BullsAndCows {
+    int32 Bulls = 0;
+    int32 Cows = 0;
+};
 
 bool static IS_ISOGRAM(const FString& Input) {
     TSet<TCHAR> charSet;
@@ -13,25 +19,48 @@ bool static IS_ISOGRAM(const FString& Input) {
     return true;
 }
 
-void static BULLS_AND_COWS(const FString& Guess, const FString& Word, int32 *bulls, int32 *cows) {
-    TSet<TCHAR> characters;
-    for (TCHAR c : Word) {
-        characters.Add(c);
+static void BULLS_AND_COWS(const FString& Guess, const FString& Word, int32& bulls, int32& cows) {
+    // a silly optimization that will remember the last Word is given
+    // probably we don't need to do that since
+    // to check equality c++ probably checks each character
+    // while checking them we can also add them to characters set
+    // but I wanted to remember static function variables
+    static FString TheWord = Word;
+    static TSet<TCHAR> characters;
+
+    bulls = 0;
+    cows = 0;
+    
+    if (TheWord != Word || characters.Num() == 0) {
+        UE_LOG(LogTemp, Warning, TEXT("The word has changed to : %s"), *Word);
+        TheWord = Word;
+        characters.Empty();
+        for (TCHAR c : Word) {
+            characters.Add(c);
+        }
     }
+
 
     for (int i = 0; i < Guess.Len(); i++) {
         TCHAR GuessedChar = (*Guess)[i];
         TCHAR WordChar = (*Word)[i];
         if (GuessedChar == WordChar) {
-            (*bulls)++;
+            (bulls)++;
         }else if (characters.Contains(GuessedChar)) {
-            (*cows)++;
+            (cows)++;
         }
 
         
     }
 
     return;
+}
+
+// A wrapper just for the course sake
+static BullsAndCows GetBullsAndCows(const FString& Guess, const FString& Word) {
+    BullsAndCows BAC;
+    BULLS_AND_COWS(Guess, Word, BAC.Bulls, BAC.Cows);
+    return BAC;
 }
 
 void UBullCowCartridge::BeginPlay() // When the game starts
@@ -65,11 +94,9 @@ void UBullCowCartridge::OnInput(const FString& Input) // When the player hits en
     }
     else {
         UE_LOG(LogTemp, Warning, TEXT("The Guess is wrong :("));
-        int32 bulls = 0;
-        int32 cows = 0;
-        BULLS_AND_COWS(Input, HiddenWord, &bulls, &cows);
-        UE_LOG(LogTemp, Warning, TEXT("Bulls: %d and Cows: %d"), bulls, cows);
-        PrintLine(TEXT("Bulls: %d, Cows: %d, Lives: %d"), bulls, cows, --Lives);
+        BullsAndCows BAC = GetBullsAndCows(Input, HiddenWord);
+        UE_LOG(LogTemp, Warning, TEXT("Bulls: %d and Cows: %d"), BAC.Bulls, BAC.Cows);
+        PrintLine(TEXT("Bulls: %d, Cows: %d, Lives: %d"), BAC.Bulls, BAC.Cows, --Lives);
         if (Lives == 0) {
             ClearScreen();
             PrintLine(TEXT("You are out of lives, starting over."));
@@ -79,7 +106,7 @@ void UBullCowCartridge::OnInput(const FString& Input) // When the player hits en
 }
 
 void UBullCowCartridge::ResetTheGame() {
-    int32 selectedIsogram = rand() % Isograms.Num();
+    int32 selectedIsogram = FMath::RandRange(0, Isograms.Num()-1);
     HiddenWord = Isograms[selectedIsogram];
     UE_LOG(LogTemp, Warning, TEXT("%s"), *HiddenWord);
     Lives = HiddenWord.Len();
